@@ -106,18 +106,6 @@ def dosAttack(satellite, username, password, count)
 
 
   arr.each {|t| t.join; }
-
-
-  puts "-------------------------------------------------------".bold
-
-  puts "\n\nTotal number of fake systems registered to #{satellite} = ".green + "#{$system_register.to_s} \n".bold.green
-  if $flag == 0
-    puts "Satellite is still up and running. \n\n"
-  elsif $flag == 1
-    puts "Attack Successfull Satellite services are down. \n\n".bold.green
-  else
-    puts "Something was wrong during attack."
-  end
     
 
 end
@@ -160,7 +148,6 @@ if options[:satellite] and options[:password] and options[:hosts]
   if test_connection(satellite, username, password)
     dosAttack(satellite, username, password, count)
   else
-    puts "------ Here2 --------------------------"
     exit 1
   end
          

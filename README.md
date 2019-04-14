@@ -29,6 +29,20 @@ Usage: ./satellite-dos-attack [options]
 
 ```
 
+## Known Issue
+
+When run from some systems it throws the below error
+
+~~~
+Unknown key: SameSite = Lax
+~~~
+
+But at the background it triggers the requests. You can check it using passenger-status command. [More details](https://medium.com/compass-security/samesite-cookie-attribute-33b3bfeaeb95)
+
+~~~
+# watch passenger-status
+~~~
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
