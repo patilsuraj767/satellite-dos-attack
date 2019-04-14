@@ -3,7 +3,7 @@ require 'optparse'
 require 'base64'
 require 'httpclient'
 
-$max_request = 200
+
 $system_register = 0
 $random = rand 500
 
@@ -153,11 +153,8 @@ if options[:satellite] and options[:password] and options[:hosts]
   username = 'admin'
   password = options[:password]
   satellite = options[:satellite]
-  if options[:hosts].to_i > $max_request
-    count = 200
-  else
-    count = options[:hosts].to_i
-  end
+  count = options[:hosts].to_i
+
 
             
   if test_connection(satellite, username, password)
